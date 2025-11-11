@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Guardian Flow{% endblock %}
+{% block content %}
+<section class="py-16">
+    <div class="max-w-6xl mx-auto px-4 space-y-10">
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-3">Training pulse</p>
+                <h2 class="text-3xl font-semibold mb-2">Welcome back{{ " " + user.get("display_name", "") if user.get("display_name") else "" }}</h2>
+                <p class="text-slate-400 text-sm mb-6">Resume your lesson or restart to sharpen every stance. Your progress autosaves to Firebase.</p>
+                <div class="grid sm:grid-cols-3 gap-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                        <p class="text-xs text-slate-500">Completion</p>
+                        <p class="text-3xl font-semibold text-slate-50">{{ percent_complete }}%</p>
+                        <p class="text-sm text-slate-400">{{ progress.get("current_pose_index", 0) }} / {{ total_poses }} poses</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                        <p class="text-xs text-slate-500">Completed Forms</p>
+                        <p class="text-3xl font-semibold text-emerald-300">{{ progress.get("completed_pose_ids", [])|length }}</p>
+                        <p class="text-sm text-slate-400">Total perfected</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                        <p class="text-xs text-slate-500">Last updated</p>
+                        <p class="text-3xl font-semibold text-fire">{% if progress.get("last_updated") %}Live{% else %}--{% endif %}</p>
+                        <p class="text-sm text-slate-400">Firebase sync</p>
+                    </div>
+                </div>
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <a href="{{ url_for('tutorial') }}" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-fire to-ember text-night font-semibold">Resume training</a>
+                    <form action="{{ url_for('progress_reset') }}" method="POST">
+                        <button type="submit" class="px-6 py-3 rounded-2xl border border-slate-700 hover:border-fire transition">Restart program</button>
+                    </form>
+                </div>
+            </div>
+            <div class="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-8 space-y-6">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Session summary</p>
+                <div class="space-y-4 text-sm text-slate-300">
+                    <div class="flex justify-between">
+                        <span>Firebase profile</span>
+                        <span class="font-semibold text-slate-50">{{ current_user_email }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Role</span>
+                        <span class="font-semibold text-slate-50">{{ current_user_role or "user" }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Training focus</span>
+                        <span class="font-semibold text-slate-50">Self-defense</span>
+                    </div>
+                </div>
+                <div class="border border-slate-800 rounded-2xl p-4 bg-slate-950/40">
+                    <p class="text-xs text-slate-500 uppercase tracking-[0.4em]">Coach tip</p>
+                    <p class="text-sm text-slate-300 mt-3">Use the restart button when you want to practice from stance zero. Admins can track every reset.</p>
+                </div>
+                <div class="border border-slate-800 rounded-2xl p-4 bg-slate-950/40 space-y-4">
+                    <p class="text-xs text-slate-500 uppercase tracking-[0.4em]">Recent matches</p>
+                    {% if recent_events %}
+                    <div class="space-y-3">
+                        {% for event in recent_events %}
+                        <div class="flex items-center justify-between text-sm text-slate-300">
+                            <div>
+                                <p class="font-semibold text-slate-50">{{ event.pose }}</p>
+                                <p class="text-xs text-slate-500">{{ event.captured_at }} · {{ event.status }}</p>
+                            </div>
+                            <span class="text-emerald-300 font-semibold">{{ event.similarity }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-slate-500">Complete a pose to see it logged here.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

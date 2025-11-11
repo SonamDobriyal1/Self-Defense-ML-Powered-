@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Create account · Guardian Flow{% endblock %}
+{% block content %}
+<section class="py-16">
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/70 to-slate-950/60 p-8">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-4">New recruit</p>
+                <h2 class="text-3xl font-semibold mb-6">Create your Guardian Flow ID</h2>
+                <p class="text-sm text-slate-400 mb-6">
+                    We’ll store your drills, completions, and restart streaks inside Firebase so you can resume training across any device.
+                </p>
+                <ul class="space-y-4 text-sm text-slate-300">
+                    <li class="flex gap-3">
+                        <span class="w-8 h-8 rounded-full bg-fire/20 text-fire flex items-center justify-center font-semibold">1</span>
+                        <div>
+                            <p class="font-semibold text-slate-100">Sign up once</p>
+                            <p>Secure account backed by Firebase Admin.</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-semibold">2</span>
+                        <div>
+                            <p class="font-semibold text-slate-100">Track every milestone</p>
+                            <p>Pose accuracy, streaks, and restart attempts kept forever.</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-8 h-8 rounded-full bg-ember/20 text-ember flex items-center justify-center font-semibold">3</span>
+                        <div>
+                            <p class="font-semibold text-slate-100">Resume instantly</p>
+                            <p>Jump into live tutorials with a single click.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-2xl shadow-fire/10">
+                <form method="POST" class="space-y-6">
+                    <label class="block text-sm">
+                        <span class="text-slate-300">Name</span>
+                        <input name="display_name" required class="mt-2 w-full rounded-2xl border border-slate-700 bg-transparent px-4 py-3 focus:outline-none focus:border-fire" placeholder="Alex Warrior">
+                    </label>
+                    <label class="block text-sm">
+                        <span class="text-slate-300">Email</span>
+                        <input name="email" type="email" required class="mt-2 w-full rounded-2xl border border-slate-700 bg-transparent px-4 py-3 focus:outline-none focus:border-fire" placeholder="you@guardianflow.com">
+                    </label>
+                    <label class="block text-sm">
+                        <span class="text-slate-300">Password</span>
+                        <input name="password" type="password" minlength="6" required class="mt-2 w-full rounded-2xl border border-slate-700 bg-transparent px-4 py-3 focus:outline-none focus:border-fire" placeholder="••••••••">
+                    </label>
+                    <button type="submit" class="w-full py-3 rounded-2xl bg-gradient-to-r from-fire to-ember text-night font-semibold">Create my profile</button>
+                    <p class="text-center text-sm text-slate-400">Already training here? <a href="{{ url_for('login') }}" class="text-fire underline">Sign in</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

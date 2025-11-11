@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel · Guardian Flow{% endblock %}
+{% block content %}
+<section class="py-16">
+    <div class="max-w-6xl mx-auto px-4 space-y-10">
+        <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-2">Admin Command</p>
+                <h2 class="text-3xl font-semibold">Cohort Progress</h2>
+                <p class="text-sm text-slate-400 mt-2">Monitor completions, restarts, and live pose indices across {{ total_poses }} references.</p>
+            </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/40 px-5 py-4">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Athletes</p>
+                <p class="text-3xl font-semibold mt-2">{{ summary.total_users }}</p>
+                <p class="text-sm text-slate-400">Active accounts</p>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/40 px-5 py-4">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Avg Completion</p>
+                <p class="text-3xl font-semibold mt-2">{{ summary.avg_completion }}%</p>
+                <div class="mt-2 h-2 w-full rounded-full bg-slate-800">
+                    <div class="h-full rounded-full bg-gradient-to-r from-fire to-ember" style="width: {{ summary.avg_completion }}%;"></div>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/40 px-5 py-4">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Total Pose Clears</p>
+                <p class="text-3xl font-semibold mt-2">{{ summary.total_completed_poses }}</p>
+                <p class="text-sm text-slate-400">Across all athletes</p>
+            </div>
+        </div>
+
+        <div class="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70">
+            <div class="grid grid-cols-12 px-6 py-4 text-xs uppercase text-slate-400 tracking-[0.2em] border-b border-slate-800">
+                <div class="col-span-3">Athlete</div>
+                <div class="col-span-3">Email</div>
+                <div class="col-span-2">Role</div>
+                <div class="col-span-2">Pose Index</div>
+                <div class="col-span-2">Progress</div>
+            </div>
+            {% for user in users %}
+            <div class="grid grid-cols-12 px-6 py-4 border-b border-slate-800/60 text-sm text-slate-200">
+                <div class="col-span-3 font-semibold">{{ user.display_name }}</div>
+                <div class="col-span-3 text-slate-400 text-xs break-all">{{ user.email }}</div>
+                <div class="col-span-2 text-slate-300 capitalize">{{ user.role }}</div>
+                <div class="col-span-2 text-slate-300">{{ user.current_pose }}/{{ total_poses }}</div>
+                <div class="col-span-2">
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 rounded-full bg-slate-800">
+                            <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style="width: {{ user.progress_pct }}%;"></div>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ user.progress_pct }}%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">{{ user.completed_count }} poses cleared</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="px-6 py-12 text-center text-slate-400">
+                No athletes found. Once users sign up, their stats will appear here.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

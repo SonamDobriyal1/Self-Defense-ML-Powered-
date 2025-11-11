@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Live Training · Guardian Flow{% endblock %}
+{% block content %}
+<section class="py-16">
+    <div class="max-w-6xl mx-auto px-4 space-y-8">
+        <div class="flex flex-wrap justify-between items-end gap-4">
+            <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-2">Live tutorial</p>
+                <h2 class="text-3xl font-semibold">Pose-by-pose defense lab</h2>
+                <p class="text-sm text-slate-400 mt-2">Watch the reference, match the pose, and let the computer vision layer score you instantly.</p>
+            </div>
+            <div class="text-sm text-slate-400">
+                <p>Pose <span class="text-fire font-semibold" id="current-pose-label">{{ starting_index + 1 }}</span> / {{ total_poses }}</p>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                    <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
+                        <div class="flex gap-3">
+                            <button id="startBtn" class="px-4 py-2 rounded-2xl bg-gradient-to-r from-fire to-ember text-night font-semibold text-sm">Start / Resume</button>
+                            <button id="restartBtn" class="px-4 py-2 rounded-2xl border border-slate-700 text-sm hover:border-fire transition">Restart</button>
+                            <button id="skipBtn" class="px-4 py-2 rounded-2xl border border-amber-400/60 text-amber-200 text-sm hover:border-amber-300 transition hidden">Skip pose</button>
+                        </div>
+                        <div id="poseStatus" class="text-xs uppercase tracking-[0.4em] text-slate-500"></div>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 overflow-hidden bg-slate-950/40">
+                        <video id="tutorial-video" class="w-full h-80 object-cover" playsinline muted></video>
+                        <div id="success-message" class="hidden p-6 text-center text-emerald-200 text-sm">Tutorial complete! Restart anytime to stay sharp.</div>
+                    </div>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-4">Reference pose</p>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/40 overflow-hidden">
+                        <img id="current-pose" alt="Current pose reference" class="w-full object-contain max-h-[420px] mx-auto">
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-6">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Vision overlay</p>
+                        <span id="live-similarity" class="text-sm text-slate-300">Similarity: 0%</span>
+                    </div>
+                    <div class="relative rounded-2xl border border-slate-800 overflow-hidden bg-slate-950/40">
+                        <img id="video-feed" alt="Live pose feedback" class="w-full h-72 object-cover hidden">
+                        <div class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm" id="video-placeholder">Waiting for camera...</div>
+                        <video id="camera-feed" autoplay playsinline class="hidden"></video>
+                    </div>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 space-y-2 text-sm text-slate-300">
+                    <p class="uppercase text-xs tracking-[0.4em] text-slate-500">Controls</p>
+                    <p>1. Watch the master clip.</p>
+                    <p>2. Mirror the stance when prompted.</p>
+                    <p>3. The AI coach will confirm and move you forward.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const trainingMeta = {
+        totalPoses: {{ total_poses }},
+        totalVideos: {{ tutorial_videos }},
+        startingIndex: {{ starting_index }},
+        poses: {{ poses_meta|tojson }},
+    };
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/camera-client.js') }}"></script>
+<script>
+    (function () {
+        const tutorialVideo = document.getElementById('tutorial-video');
+        const currentPoseImg = document.getElementById('current-pose');
+        const poseStatus = document.getElementById('poseStatus');
+        const skipBtn = document.getElementById('skipBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const similarityLabel = document.getElementById('live-similarity');
+        const poseLabel = document.getElementById('current-pose-label');
+        const successMessage = document.getElementById('success-message');
+
+        const state = {
+            currentVideoIndex: Math.max(0, Math.min(trainingMeta.startingIndex, trainingMeta.totalPoses - 1)),
+            totalVideos: trainingMeta.totalVideos,
+            totalPoses: trainingMeta.totalPoses,
+            running: false,
+        };
+        poseStatus.textContent = 'Press start to begin training';
+
+        window.currentVideoIndex = state.currentVideoIndex;
+
+        function poseImagePath(index) {
+            const imageNumber = String(index + 1).padStart(2, '0');
+            const suffix = (index + 1 === 20 || index + 1 === 21) ? 'a' : '';
+            return `/static/poses/P1-${imageNumber}${suffix}.jpg`;
+        }
+
+        function poseVideoPath(index) {
+            const suffix = (index + 1 === 20 || index + 1 === 21) ? '(a)' : '';
+            return `/static/poses_video/clip_${index + 1}${suffix}.mp4`;
+        }
+
+        function updatePoseLabel() {
+            if (poseLabel) {
+                poseLabel.textContent = Math.min(state.currentVideoIndex + 1, state.totalPoses);
+            }
+        }
+
+        function persistPoseIndex(index) {
+            return fetch(`/update_pose_index/${index}`, { method: 'POST' }).catch(() => {});
+        }
+
+        function persistProgress(index, completedPoseId) {
+            return fetch('/progress/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    current_pose_index: index,
+                    completed_pose_id: completedPoseId,
+                }),
+            }).catch(() => {});
+        }
+
+        function startPoseDetection() {
+            poseStatus.textContent = 'Hold your stance';
+            if (window.cameraClient) {
+                window.cameraClient.start('camera-feed');
+            }
+            if (skipBtn) {
+                skipBtn.classList.remove('hidden');
+            }
+            persistPoseIndex(state.currentVideoIndex);
+        }
+
+        function showTargetPose(startDetection = true) {
+            const imgPath = poseImagePath(state.currentVideoIndex);
+            currentPoseImg.src = imgPath;
+            currentPoseImg.onload = () => {
+                currentPoseImg.classList.remove('hidden');
+                if (startDetection) {
+                    startPoseDetection();
+                }
+            };
+            currentPoseImg.onerror = () => {
+                poseStatus.textContent = 'Pose reference missing';
+            };
+        }
+
+        function showSuccessMessage() {
+            if (successMessage) {
+                successMessage.classList.remove('hidden');
+            }
+            poseStatus.textContent = 'Tutorial complete';
+            if (window.cameraClient) {
+                window.cameraClient.stop();
+            }
+            if (skipBtn) {
+                skipBtn.classList.add('hidden');
+            }
+        }
+
+        function playNextVideo() {
+            if (state.currentVideoIndex >= state.totalVideos) {
+                showSuccessMessage();
+                return;
+            }
+
+            if (window.cameraClient) {
+                window.cameraClient.stop();
+            }
+
+            successMessage.classList.add('hidden');
+            poseStatus.textContent = 'Watch the master clip';
+            const src = poseVideoPath(state.currentVideoIndex);
+            tutorialVideo.style.display = 'block';
+            tutorialVideo.src = src;
+            tutorialVideo.playbackRate = 0.75;
+            tutorialVideo.onended = () => {
+                tutorialVideo.style.display = 'none';
+                showTargetPose(true);
+            };
+            tutorialVideo.onerror = () => {
+                tutorialVideo.style.display = 'none';
+                showTargetPose(true);
+            };
+            tutorialVideo.play().catch(() => {});
+            updatePoseLabel();
+            window.currentVideoIndex = state.currentVideoIndex;
+        }
+
+        function startTutorial() {
+            state.running = true;
+            poseStatus.textContent = 'Starting session';
+            playNextVideo();
+        }
+
+        function restartTutorial() {
+            fetch('/progress/reset', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+            }).finally(() => {
+                state.currentVideoIndex = 0;
+                window.currentVideoIndex = 0;
+                successMessage.classList.add('hidden');
+                startTutorial();
+            });
+        }
+
+        function skipPose() {
+            state.currentVideoIndex = Math.min(state.currentVideoIndex + 1, state.totalPoses - 1);
+            window.currentVideoIndex = state.currentVideoIndex;
+            persistPoseIndex(state.currentVideoIndex);
+            playNextVideo();
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!state.running) {
+                startTutorial();
+            } else {
+                playNextVideo();
+            }
+        });
+
+        restartBtn.addEventListener('click', restartTutorial);
+        skipBtn.addEventListener('click', skipPose);
+
+        window.playNextVideo = function () {
+            state.currentVideoIndex = Math.min(window.currentVideoIndex, state.totalPoses - 1);
+            updatePoseLabel();
+            persistPoseIndex(state.currentVideoIndex);
+            playNextVideo();
+        };
+
+        window.showPoseSuccessMessage = function (data) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 flex items-center justify-center bg-slate-950/80 z-50';
+            overlay.innerHTML = `
+                <div class="bg-slate-900 border border-slate-700 rounded-3xl px-10 py-8 text-center space-y-3">
+                    <p class="text-sm text-slate-400 uppercase tracking-[0.4em]">Pose cleared</p>
+                    <h3 class="text-2xl font-semibold text-emerald-300">Great job!</h3>
+                    <p class="text-slate-300 text-sm">${data?.message || 'Moving to the next stance.'}</p>
+                </div>`;
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 1500);
+
+            const nextIndex = Math.min(window.currentVideoIndex + 1, state.totalPoses - 1);
+            persistProgress(nextIndex, window.currentVideoIndex + 1);
+        };
+
+        window.addEventListener('pose_match_confirmed', (evt) => {
+            if (evt?.detail?.similarity && similarityLabel) {
+                similarityLabel.textContent = `Similarity: ${Math.round(evt.detail.similarity)}%`;
+            }
+        });
+
+        // expose state for debugging
+        window.trainingState = state;
+
+        // prepare current pose preview without starting detection
+        showTargetPose(false);
+    })();
+</script>
+{% endblock %}

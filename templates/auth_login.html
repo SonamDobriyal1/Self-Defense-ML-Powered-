@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Guardian Flow{% endblock %}
+{% block content %}
+<section class="py-16">
+    <div class="max-w-lg mx-auto px-4">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-2xl shadow-fire/10">
+            <p class="text-xs uppercase tracking-[0.4em] text-slate-500 mb-6">Welcome back</p>
+            <h2 class="text-2xl font-semibold mb-2">Log in to continue training</h2>
+            <p class="text-sm text-slate-400 mb-8">Pick up exactly where you paused. Your drills, stats, and streaks are synced through Firebase.</p>
+            <form method="POST" class="space-y-6">
+                <label class="block text-sm">
+                    <span class="text-slate-300">Email</span>
+                    <input name="email" type="email" required class="mt-2 w-full rounded-2xl border border-slate-700 bg-transparent px-4 py-3 focus:outline-none focus:border-fire" placeholder="athlete@dojo.com">
+                </label>
+                <label class="block text-sm">
+                    <span class="text-slate-300">Password</span>
+                    <input name="password" type="password" required class="mt-2 w-full rounded-2xl border border-slate-700 bg-transparent px-4 py-3 focus:outline-none focus:border-fire" placeholder="••••••••">
+                </label>
+                <button type="submit" class="w-full py-3 rounded-2xl bg-gradient-to-r from-fire to-ember text-night font-semibold mt-2">Enter command center</button>
+                <p class="text-center text-sm text-slate-400">Need an account? <a href="{{ url_for('signup') }}" class="text-fire underline">Join the platform</a></p>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
